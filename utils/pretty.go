@@ -7,7 +7,7 @@ import (
 
 func PrettyPrint(data interface{}) {
 	var p []byte
-	p, err := json.MarshalIndent(data, "", "\t")
+	p, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		fmt.Println(err)
 	}
