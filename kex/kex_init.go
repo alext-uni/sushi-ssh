@@ -138,5 +138,43 @@ func UnmarshalKexInit(data []byte) (*KexInit, error) {
 		b,
 		empty,
 	}, nil
+}
 
+type Algos struct {
+	Kex                       string
+	ServerHostKey             string
+	EncryptionClientToServer  string
+	EncryptionServerToClient  string
+	MacClientToServer         string
+	MacServerToServer         string
+	CompressionServerToClient string
+	CompressionClientToServer string
+	LanguagesClientToServer   string
+	LanguagesServerToClient   string
+}
+
+func ResoleveAlgos(client, server *KexInit) *Algos {
+	return &Algos{
+		FindMatchAlg(client.KexAlgos, server.KexAlgos),
+		FindMatchAlg(client.ServerHostKeyAlgos, server.ServerHostKeyAlgos),
+		FindMatchAlg(client.EncryptionClientToServer, server.EncryptionClientToServer),
+		FindMatchAlg(client.EncryptionServerToClient, server.EncryptionServerToClient),
+		FindMatchAlg(client.MacClientToServer, server.MacClientToServer),
+		FindMatchAlg(client.MacServerToClient, server.MacServerToClient),
+		FindMatchAlg(client.CompressionClientToServer, server.CompressionClientToServer),
+		FindMatchAlg(client.CompressionServertToClient, server.CompressionServertToClient),
+		FindMatchAlg(client.LanguagesClientToServer, server.LanguagesClientToServer),
+		FindMatchAlg(client.LanguagesServerToClient, server.LanguagesServerToClient),
+	}
+}
+
+func FindMatchAlg(clientList, serverList utils.NameList) string {
+	for _, v1 := range clientList {
+		for _, v2 := range serverList {
+			if v2 == v1 {
+				return v2
+			}
+		}
+	}
+	return ""
 }

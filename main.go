@@ -2,10 +2,9 @@ package main
 
 import (
 	"bufio"
+	"crypto/ecdh"
 	"crypto/rand"
-	"encoding/binary"
 	"fmt"
-	"io"
 	"net"
 
 	"github.com/Juancodja/sushi-ssh/kex"
@@ -31,15 +30,16 @@ func main() {
 
 	var c [16]byte
 	rand.Read(c[:])
-	ckinit := kex.KexInit{
+
+	ckinit := &kex.KexInit{
 		MessageCode:                20,
 		Cookie:                     c,
 		KexAlgos:                   utils.NameList{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "curve25519-sha256"},
-		ServerHostKeyAlgos:         utils.NameList{"ssh-rsa", "ssh-dss"},
-		EncryptionClientToServer:   utils.NameList{"3des-cbc"},
-		EncryptionServerToClient:   utils.NameList{"3des-cbc"},
-		MacClientToServer:          utils.NameList{"hmac-sha1"},
-		MacServerToClient:          utils.NameList{"hmac-sha1"},
+		ServerHostKeyAlgos:         utils.NameList{"ssh-rsa", "ssh-dss", "ssh-ed25519"},
+		EncryptionClientToServer:   utils.NameList{"3des-cbc", "aes128-ctr"},
+		EncryptionServerToClient:   utils.NameList{"3des-cbc", "aes128-ctr"},
+		MacClientToServer:          utils.NameList{"hmac-sha1", "hmac-sha2-256"},
+		MacServerToClient:          utils.NameList{"hmac-sha1", "hmac-sha2-256"},
 		CompressionClientToServer:  utils.NameList{"none"},
 		CompressionServertToClient: utils.NameList{"none"},
 		LanguagesClientToServer:    utils.NameList{},
@@ -49,42 +49,54 @@ func main() {
 	}
 
 	fmt.Println("CLIENTE: SSH_MSG_KEXINIT")
-
-	fmt.Printf("%+v\n", ckinit)
+	utils.PrettyPrint(ckinit)
 
 	m := utils.NewSSHMessage(ckinit.Marshal(), []byte{}, 8)
 
-	fmt.Fprint(conn, m)
-
-	var packlen uint32
-	binary.Read(conn, binary.BigEndian, &packlen)
-
-	var padlen byte
-	binary.Read(conn, binary.BigEndian, &padlen)
-
-	payload_len := int(packlen) - int(padlen) - 1
-	payload := make([]byte, payload_len)
-	_, err = io.ReadFull(conn, payload)
+	err = utils.SendMessage(conn, m.Marshal())
 	if err != nil {
 		panic(err)
 	}
 
+	serverKexInitMsg, err := utils.ReadNextMessage(conn, 0)
+	if err != nil {
+		panic(err)
+	}
+	payload := serverKexInitMsg.Payload
 	skinit, _ := kex.UnmarshalKexInit(payload)
 
-	fmt.Printf("%+v\n", skinit)
+	fmt.Println("SERVIDOR: SSH_MSH_KEXINIT ")
+	utils.PrettyPrint(skinit)
 
-	kexAlg := "none"
-	for _, v1 := range ckinit.KexAlgos {
-		for _, v2 := range skinit.KexAlgos {
-			if v2 == v1 {
-				kexAlg = v2
-				break
-			}
-		}
-	}
-	if kexAlg == "none" {
-		panic("no hay algorimo valido")
-	}
+	algs := kex.ResoleveAlgos(ckinit, skinit)
 	fmt.Println("ALGORITMO KEX SELECIONADO: ")
-	fmt.Println(kexAlg)
+	utils.PrettyPrint(algs)
+
+	Q, err := ecdh.X25519().GenerateKey(rand.Reader)
+	Q_pub := Q.PublicKey().Bytes()
+
+	keylen := uint32(len(Q_pub))
+	kexPayload := []byte{30}
+	kexPayload = append(kexPayload,
+		byte(keylen>>24),
+		byte(keylen>>16),
+		byte(keylen>>8),
+		byte(keylen),
+	)
+	kexPayload = append(kexPayload, Q_pub...)
+
+	fmt.Println("CLIENT: SSH_MSG_KEX_ECDH_INIT")
+	kexMsg := utils.NewSSHMessage(kexPayload, []byte{}, 8)
+	utils.PrettyPrint(kexMsg)
+
+	err = utils.SendMessage(conn, kexMsg.Marshal())
+	if err != nil {
+		panic(err)
+	}
+	serverKexMsg, err := utils.ReadNextMessage(conn, 0)
+	if err != nil {
+		panic(err)
+	}
+	payload = serverKexMsg.Payload
+
 }
