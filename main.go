@@ -115,7 +115,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("SERVER:")
+	fmt.Println("SERVER: SSH_MSG_KEX_ECDH_REPLY")
 	serverKexMsg, err := utils.ReadNextMessage(conn, 0)
 	if err != nil {
 		panic(err)
@@ -128,19 +128,29 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println()
-	fmt.Printf("edDSApub: [% x ]\n", serverKeys.EdDSApub)
-	fmt.Printf("keyType: %s\n", serverKeys.KeyType)
-	fmt.Printf("Q_c: [% x ]\n", serverKeys.Q_c)
-	fmt.Printf("Signature: %s \n", serverKeys.SignatureType)
-	fmt.Printf("data: [% x]\n", serverKeys.Signature)
+	utils.PrettyPrint(serverKeys)
 
+	fmt.Println("SERVER: SSH_MSG_NEW_KEYS")
 	serverNewKeys, err := utils.ReadNextMessage(conn, 0)
 	if err != nil {
 		panic(err)
 	}
-	b = bytes.NewBuffer(serverNewKeys.Padding)
+	b = bytes.NewBuffer(serverNewKeys.Payload)
 	if err = utils.ReadNewKeys(b); err != nil {
 		panic(err)
 	}
+
+	fmt.Println("CLIENT: SSH_MSG_NEW_KEYS")
+	clientNewKeys := utils.NewSSHMessage([]byte{21}, []byte{}, 8)
+	err = utils.SendMessage(conn, clientNewKeys.Marshal())
+	if err != nil {
+		panic(err)
+	}
+
+	Q_s, err := ecdh.Curve.NewPublicKey(Q.Curve(), serverKeys.Q_s)
+	if err != nil {
+		panic(err)
+	}
+
+	utils.DerivateKeys(Q, Q_s)
 }

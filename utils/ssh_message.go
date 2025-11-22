@@ -65,7 +65,6 @@ func NewSSHMessage(payload, mac []byte, blockSize int) *SSHMessage {
 
 func SendMessage(conn net.Conn, data []byte) error {
 	n, err := conn.Write(data)
-	fmt.Printf("Enviados %d bytes\n", n)
 	if err != nil {
 		return fmt.Errorf("write failed: %w", err)
 	}
@@ -119,7 +118,6 @@ func ReadNextMessage(conn io.Reader, maclen int) (*SSHMessage, error) {
 	}
 	totalBytes += n
 
-	fmt.Printf("Leyendo Mensaje: pack: %d pay: %d pad: %d mac: %d leidos: %d \n", packlen, payloadlen, padlen, maclen, totalBytes)
 	if totalBytes != int(packlen) {
 		return nil, errors.New("Mensaje mal leido")
 	}
@@ -131,19 +129,4 @@ func ReadNextMessage(conn io.Reader, maclen int) (*SSHMessage, error) {
 		Padding:       padding,
 		MAC:           mac,
 	}, nil
-}
-
-func ReadSshString(b *bytes.Buffer) (uint32, []byte, error) {
-	var l uint32
-	if err := binary.Read(b, binary.BigEndian, &l); err != nil {
-		return 0, nil, err
-	}
-	s := make([]byte, l)
-
-	_, err := io.ReadFull(b, s)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return l, s, nil
 }

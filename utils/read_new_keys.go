@@ -10,7 +10,7 @@ import (
 type KeyExchangeReply struct {
 	KeyType       []byte
 	EdDSApub      []byte
-	Q_c           []byte
+	Q_s           []byte
 	SignatureType []byte
 	Signature     []byte
 }
@@ -29,17 +29,17 @@ func ReadKeyExchangeReply(b *bytes.Buffer) (*KeyExchangeReply, error) {
 		return nil, err
 	}
 
-	_, hostKeyType, err := ReadSshString(b)
+	hostKeyType, err := ReadSshString(b)
 	if err != nil {
 		return nil, err
 	}
 
-	_, edDSApub, err := ReadSshString(b)
+	edDSApub, err := ReadSshString(b)
 	if err != nil {
 		return nil, err
 	}
 
-	_, ecdhServerEphemeral, err := ReadSshString(b)
+	ecdhServerEphemeral, err := ReadSshString(b)
 	if err != nil {
 		return nil, err
 	}
@@ -49,12 +49,12 @@ func ReadKeyExchangeReply(b *bytes.Buffer) (*KeyExchangeReply, error) {
 		return nil, err
 	}
 
-	_, signatureType, err := ReadSshString(b)
+	signatureType, err := ReadSshString(b)
 	if err != nil {
 		return nil, err
 	}
 
-	signDataLen := int(signatureLen) - len(signatureType) - 4
+	signDataLen := int(signatureLen) - len(signatureType.String()) - 4
 	signatureData := make([]byte, signDataLen)
 	_, err = b.Read(signatureData)
 	if err != nil {
@@ -62,10 +62,10 @@ func ReadKeyExchangeReply(b *bytes.Buffer) (*KeyExchangeReply, error) {
 	}
 
 	return &KeyExchangeReply{
-		hostKeyType,
-		edDSApub,
-		ecdhServerEphemeral,
-		signatureType,
+		hostKeyType.Payload,
+		edDSApub.Payload,
+		ecdhServerEphemeral.Payload,
+		signatureType.Payload,
 		signatureData,
 	}, nil
 }
