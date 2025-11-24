@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Juancodja/sushi-ssh/ssh"
+	"github.com/alext-uni/sushi-ssh/ssh"
 )
 
 type KeyExchangeReply struct {

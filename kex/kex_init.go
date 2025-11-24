@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/Juancodja/sushi-ssh/ssh"
+	"github.com/alext-uni/sushi-ssh/ssh"
 )
 
 type KexInit struct {

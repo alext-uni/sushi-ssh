@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/Juancodja/sushi-ssh/ssh"
+	"github.com/alext-uni/sushi-ssh/ssh"
 )
 
 func DerivateConnState(ks *KexState) (*ssh.ConnectionState, error) {

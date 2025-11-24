@@ -14,9 +14,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Juancodja/sushi-ssh/kex"
-	"github.com/Juancodja/sushi-ssh/ssh"
-	"github.com/Juancodja/sushi-ssh/utils"
+	"github.com/alext-uni/sushi-ssh/kex"
+	"github.com/alext-uni/sushi-ssh/ssh"
+	"github.com/alext-uni/sushi-ssh/utils"
 )
 
 func main() {
